@@ -2,6 +2,6 @@ var X
 mov R1 $10
 label: mov R2 $100
 mul R3 R1 R2
-hlt
 st R3 X
 jmp label
+hlt
