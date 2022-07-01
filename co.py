@@ -10,6 +10,8 @@ def getRegister(reg):
         registers = {'R0': '000','R1': '001','R2': '010','R3': '011','R4': '100','R5': '101','R6': '110','FLAGS': '111'}
         if reg in registers:
             return registers[reg]
+        else:
+            return 'Error'
 
 def getInstructionType(instruction):
     if instruction[0] in ["add","sub","mul","xor","or","and"]:
@@ -128,12 +130,22 @@ for line in Assembly_Code:
 #print(Assembly_Code)
 #print(labels)
 
-
+lineCount=0
 for line in Assembly_Code:
+    lineCount+=1
     codeline=line.split()
     #print(codeline)
-    if(codeline[0]=="mov" and codeline[2][1::].isdecimal()):
-        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
+    if(codeline[0]=='mov'):
+        if(codeline[2][1::].isdecimal()):
+            if(int(codeline[2][1::])<0 or int(codeline[2][1::])>255):
+                Errors.append("Error: Line n.o: "+str(lineCount+len(Variables))+" immediate value '"+str(codeline[2][1::])+"' is out of range")
+
+            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
+        
+        elif len(codeline)==3:
+            Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
+
+
 
 
     elif(codeline[0]=="rs" and codeline[2][1::].isdecimal()):
@@ -150,9 +162,6 @@ for line in Assembly_Code:
 
     elif(codeline[0]=="ld"):
         Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1])+Variables[codeline[2]])
-
-    elif codeline[0]=="mov":
-        Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
 
     elif codeline[0]=="div":
         Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
@@ -192,6 +201,10 @@ for line in Assembly_Code:
     
     elif codeline[0]=="je":
         Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+
+    
+
+
 
 if Errors!=[]:
     for line in Errors:
