@@ -74,25 +74,7 @@ for line in file:
     Assembly_Code.append(line.rstrip())
 
 
-hlt_encountered=False
-count=0
-
-for line in Assembly_Code:
-    codeline=line.split()
-    for i in codeline:
-        if(i=='hlt'):
-            count=count+1
-            hlt_encountered=True
     
-if(count==0 and hlt_encountered==False):
-    Errors.append("Error: hlt instruction not found")
-    
-    
-elif(count==1 and Assembly_Code[-1]!='hlt'):
-    Errors.append("Error : hlt not being used as the last instruction")
-    
-
-
 
 Variables={}
 # print(Assembly_Code)
@@ -100,26 +82,46 @@ Variables={}
 var_Address=len(Assembly_Code)
 for line in Assembly_Code:
     codeline=line.split()
-    if(codeline[0]=='var'):
+    if(codeline==[]):
         var_Address-=1
-    elif(codeline==[]):
+    elif(codeline[0]=='var'):
         var_Address-=1
+    
 
 
+countLine_var=0
 for line in Assembly_Code:
+    countLine_var+=1
     codeline=line.split()
-    if(codeline[0]=="var"):
+    if(codeline==[]):
+        continue
+    if(codeline[0]=="var" and len(codeline)==2):
         Variables[codeline[1]]=format(var_Address,'08b')
         var_Address+=1
         Assembly_Code.pop(0)
+        
+    
+    elif(codeline[0]=="var"):
+        Errors.append("Error: " +"Line n.o: "+str(countLine_var)+ " Invalid variable declaration")
+        Assembly_Code.pop(0)
+
+    else:
+        break
+
 labels={}
 #print(Variables)
 line_address=0
 newline=""
+countLine_label=0
 for line in Assembly_Code:
+    countLine_label+=1
     codeline=line.split()
+    if(codeline==[]):
+        continue
     if(codeline[0][-1] == ":"):
-        if(codeline[0][:len(codeline[0])-1:] not in labels):
+        if(codeline[0][:len(codeline[0])-1:] in Variables):
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label+len(Variables))+ " Misuse of Variable as Label")
+        elif(codeline[0][:len(codeline[0])-1:] not in labels):
             labels[codeline[0][:len(codeline[0])-1:]] = line_address
             for element in range(1,len(codeline)):
                 newline += codeline[element] + " "
@@ -129,81 +131,243 @@ for line in Assembly_Code:
 
 #print(Assembly_Code)
 #print(labels)
+def typeA_Error(codeLine,line_Number):
+    if len(codeline)!=4:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif (getRegister(codeLine[1])=='Error' or getRegister(codeLine[2])=='Error' or getRegister(codeLine[3])=='Error'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        return True
+    elif(getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111' or getRegister(codeLine[3])=='111'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        return True
+
+
+def typeB_Error(codeLine,line_Number):
+    if len(codeline)!=3:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif (getRegister(codeLine[1])=='Error'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        return True
+    elif((codeLine[2][0])!='$'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif(not codeLine[2][1::].isdecimal()):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Immediate value is not an integer")
+        return True
+    elif(codeLine[2][1::].isdecimal() and int(codeLine[2][1::])<0 or int(codeLine[2][1::])>255):
+        Errors.append("Error: Line n.o: "+(line_Number)+" immediate value '"+str(codeline[2][1::])+"' is out of range")
+        return True
+
+def typeC_Error(codeLine,line_Number):
+    if len(codeline)!=3:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif(getRegister(codeline[1])=='Error' or getRegister(codeline[2])=='Error'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        return True
+    elif (codeLine[0] in ['div','not','cmp'] and (getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111')):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        return True
+    elif (getRegister(codeLine[1])=='111'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        return True
+
+def typeD_Error(codeLine,line_Number):
+    if len(codeline)!=3:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif(codeLine[2] in labels):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Labels as Variable")
+        return True
+    elif (codeLine[2] not in Variables):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Variable")
+        return True
+
+def typeE_Error(codeLine,line_Number):
+    if(len(codeline))!=2:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        return True
+    elif(codeLine[1] in Variables):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Variable as Label")
+        return True
+    elif (codeLine[1] not in labels):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Label")
+        return True
+
+def typeF_Error(codeLine,line_Number):
+    if len(codeline)!=1:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax of hlt instruction")
+        return True
+    
+        
+hlt_Present=False
+hlt_Count=0
+
+#print(len(Assembly_Code))
+for Line_No in range(0,len(Assembly_Code)):
+    codeline=Assembly_Code[Line_No].split()
+    #print(codeline)
+    if(codeline!=[]):
+        if(codeline[0]=='hlt' and Line_No!=len(Assembly_Code)-1):
+            Errors.append("Error: "+"Line N.o: "+ str(Line_No+1+len(Variables))+ " hlt not being used as the last instruction")
+            hlt_Count=hlt_Count+1
+
+        elif(codeline[0]=='hlt' and Line_No==len(Assembly_Code)-1):
+            hlt_Count=hlt_Count+1
+            hlt_Present=True
+    else:
+        continue
+
+if(hlt_Count==0 and hlt_Present==False):
+    Errors.append("Error: hlt instruction not found")
+
+
 
 lineCount=0
 for line in Assembly_Code:
-    lineCount+=1
+    
     codeline=line.split()
+    lineCount+=1
     #print(codeline)
-    if(codeline[0]=='mov'):
-        if(codeline[2][1::].isdecimal()):
-            if(int(codeline[2][1::])<0 or int(codeline[2][1::])>255):
-                Errors.append("Error: Line n.o: "+str(lineCount+len(Variables))+" immediate value '"+str(codeline[2][1::])+"' is out of range")
+    Line_Number=str(lineCount+len(Variables))
+    
+    if (codeline==[]):
+        continue
+    
+    elif codeline[0]=='var':
+        Errors.append("Error: " +"Line n.o: "+str(lineCount+len(Variables))+ " Invalid Variable declaration ")
+    
+    
 
-            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
+    elif(codeline[0]=='mov'):
+        if(codeline[2][0]=='$'):
+            if(typeB_Error(codeline,Line_Number)):
+                continue
+            else:
+                Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
         
         elif len(codeline)==3:
-            Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
-
-
+            if(typeC_Error(codeline,Line_Number)):
+                continue
+            else:
+                Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
 
 
     elif(codeline[0]=="rs" and codeline[2][1::].isdecimal()):
-        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
+        if(typeB_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
 
     elif(codeline[0]=="ls" and codeline[2][1::].isdecimal()):
-        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
+        if(typeB_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + format(int(codeline[2][1::]),'08b'))
 
-    elif(codeline[0]=='hlt'):
-        Machine_Code.append(getOpcode(codeline) + "0"*11 ) 
 
     elif(codeline[0]=="st"):
-        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1])+Variables[codeline[2]])
+        if(typeD_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1])+Variables[codeline[2]])
 
     elif(codeline[0]=="ld"):
-        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1])+Variables[codeline[2]])
+        if(typeD_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1])+Variables[codeline[2]])
 
     elif codeline[0]=="div":
-        Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
+        if(typeC_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
 
     elif codeline[0]=="not":
-        Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
+        if(typeC_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
 
     elif codeline[0]=="cmp":
-        Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
+        if(typeC_Error(codeline,Line_Number)):
+                continue
+        else:    
+            Machine_Code.append(getOpcode(codeline)+ "0"*5 + getRegister(codeline[1]) + getRegister(codeline[2]))
 
     elif codeline[0]=="add":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
 
     elif codeline[0]=="sub":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
 
     elif codeline[0]=="mul":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
 
     elif codeline[0]=="xor":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
 
     elif codeline[0]=="and":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
         
     elif codeline[0]=="or":
-        Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+        if(typeA_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
 
     elif codeline[0]=="jmp":
-        Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+        if(typeE_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
 
     elif codeline[0]=="jlt":
-        Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+        if(typeE_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
     
     elif codeline[0]=="jgt":
-        Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+        if(typeE_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
     
     elif codeline[0]=="je":
-        Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+        if(typeE_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+
+    elif(codeline[0]=='hlt'):
+        if(typeF_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline) + "0"*11 ) 
 
     
-
+    else:
+        Errors.append("Error: "+"Line N.o: "+ Line_Number + " Invalid Instruction")
+        continue
 
 
 if Errors!=[]:
