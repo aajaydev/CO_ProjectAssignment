@@ -16,7 +16,7 @@ def getRegister(reg):
 def getInstructionType(instruction):
     if instruction[0] in ["add","sub","mul","xor","or","and"]:
         return 'a'
-    elif (instruction[0] in ["mov"] and instruction[2][1::].isdecimal()) or (instruction[0] in ["ls","rs"]):
+    elif (instruction[0] in ["mov"] and instruction[2][0]=='$') or (instruction[0] in ["ls","rs"]):
         return 'b'
     elif instruction[0] in ["mov","div"]:
         return 'c'
@@ -72,8 +72,6 @@ def getOpcode(line):
 file=open("input.txt","r")
 for line in file:
     Assembly_Code.append(line.rstrip())
-
-
     
 
 Variables={}
@@ -86,7 +84,6 @@ for line in Assembly_Code:
         var_Address-=1
     elif(codeline[0]=='var'):
         var_Address-=1
-    
 
 
 countLine_var=0
@@ -110,26 +107,42 @@ for line in Assembly_Code:
 
 labels={}
 #print(Variables)
-line_address=0
-newline=""
-countLine_label=0
+line_address=-1
+
+countLine_label=len(Variables)
 for line in Assembly_Code:
+    line_address+=1
+    newline=""
     countLine_label+=1
     codeline=line.split()
     if(codeline==[]):
         continue
-    if(codeline[0][-1] == ":"):
+
+    elif(codeline[0][-1] == ":" and line.count(":")==1):
         if(codeline[0][:len(codeline[0])-1:] in Variables):
-            Errors.append("Error: " +"Line n.o: "+str(countLine_label+len(Variables))+ " Misuse of Variable as Label")
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Misuse of Variable as Label")
+
+        elif(codeline[0][-1] == ":" and len(codeline)==1):
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration")
+            Assembly_Code[line_address]=''
+
+        elif(codeline[0][:len(codeline[0])-1:] in labels):
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Duplicate Label Declaration")
+            Assembly_Code[line_address]=''
+
         elif(codeline[0][:len(codeline[0])-1:] not in labels):
             labels[codeline[0][:len(codeline[0])-1:]] = line_address
             for element in range(1,len(codeline)):
                 newline += codeline[element] + " "
             Assembly_Code[line_address] = newline
-    line_address+=1
+            
+    elif(codeline[0][-1] == ":" and line.count(":")>1):
+        Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration")
+        Assembly_Code[line_address]=''
+            
+    
 
 
-#print(Assembly_Code)
 #print(labels)
 def typeA_Error(codeLine,line_Number):
     if len(codeline)!=4:
@@ -376,5 +389,3 @@ if Errors!=[]:
 else:
     for line in Machine_Code:
         print(line)
-
-# print(Machine_Code[0])
