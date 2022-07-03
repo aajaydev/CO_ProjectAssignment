@@ -48,11 +48,9 @@ def getOpcode(line):
         return 'Error'
     
 
-
 for line in fileinput.input():
     Assembly_Code.append(line.rstrip())
     
-
 Variables={}
 
 var_Address=len(Assembly_Code)
@@ -125,9 +123,6 @@ for line in Assembly_Code:
         Assembly_Code[line_address]=''
             
     
-
-
-#print(labels)
 def typeA_Error(codeLine,line_Number):
     if len(codeline)!=4:
         Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type A Error"+" ("+line+")")
@@ -219,17 +214,14 @@ if(hlt_Count==0 and hlt_Present==False):
     Errors.append("Error: hlt instruction not found")
 
 
-
 lineCount=0
 for line in Assembly_Code:
     
     codeline=line.split()
     lineCount+=1
-    #print(codeline)
     Line_Number=str(lineCount+len(Variables))
 
 
-    
     if (codeline==[]):
         continue
     
@@ -360,10 +352,10 @@ for line in Assembly_Code:
         else:
             Machine_Code.append(getOpcode(codeline) + "0"*11 ) 
 
-    
     else:
         Errors.append("Error: "+"Line n.o: "+ Line_Number + " Invalid Instruction")
         continue
+
 
 if Errors!=[]:
     for line in Errors:
