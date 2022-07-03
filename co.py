@@ -14,22 +14,6 @@ def getRegister(reg):
         else:
             return 'Error'
 
-def getInstructionType(instruction):
-    if instruction[0] in ["add","sub","mul","xor","or","and"]:
-        return 'a'
-    elif (instruction[0] in ["mov"] and instruction[2][0]=='$') or (instruction[0] in ["ls","rs"]):
-        return 'b'
-    elif instruction[0] in ["mov","div"]:
-        return 'c'
-    elif instruction[0] in ["ld","st"]:
-        return 'd'
-    elif instruction[0] in ["jmp","jlt","jgt","je"]:
-        return 'e'
-    elif instruction[0] in ["hlt"]:
-        return 'f'
-    else:
-        return 'Error'
-
 def getOpcode(line):
     opcodes={
         'add':'10000',
