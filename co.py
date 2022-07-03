@@ -1,4 +1,5 @@
 import sys
+import fileinput
 
 Assembly_Code=[]
 
@@ -63,8 +64,8 @@ def getOpcode(line):
         return 'Error'
     
 
-file=open("input.txt","r")
-for line in file:
+
+for line in fileinput.input():
     Assembly_Code.append(line.rstrip())
     
 
@@ -380,10 +381,11 @@ for line in Assembly_Code:
         Errors.append("Error: "+"Line n.o: "+ Line_Number + " Invalid Instruction")
         continue
 
-
 if Errors!=[]:
     for line in Errors:
-        print(line)
+        # print(line)
+        sys.stdout.write(line+"\n")
 else:
     for line in Machine_Code:
-        print(line)
+        # print(line)
+        sys.stdout.write(line+"\n")
