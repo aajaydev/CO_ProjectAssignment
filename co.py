@@ -167,7 +167,7 @@ def typeC_Error(codeLine,line_Number):
     elif (codeLine[0] in ['div','not','cmp'] and (getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111')):
         Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Type C Error"+" ("+line+")")
         return True
-    elif (getRegister(codeLine[1])=='111'):
+    elif (getRegister(codeLine[2])=='111'):
         Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Type C Error"+" ("+line+")")
         return True
 
