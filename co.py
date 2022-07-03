@@ -63,19 +63,12 @@ def getOpcode(line):
         return 'Error'
     
 
-# for line in sys.stdin:
-#     if line=="\n":
-#         break
-#     if(line):
-#         Assembly_Code.append(line.rstrip())
-
 file=open("input.txt","r")
 for line in file:
     Assembly_Code.append(line.rstrip())
     
 
 Variables={}
-# print(Assembly_Code)
 
 var_Address=len(Assembly_Code)
 for line in Assembly_Code:
@@ -87,26 +80,32 @@ for line in Assembly_Code:
 
 
 countLine_var=0
+Varlines_ToBeRemoved=[]
 for line in Assembly_Code:
     countLine_var+=1
     codeline=line.split()
     if(codeline==[]):
         continue
-    if(codeline[0]=="var" and len(codeline)==2):
+    elif(codeline[0]=="var" and len(codeline)==2 and (codeline[1] not in Variables)):
         Variables[codeline[1]]=format(var_Address,'08b')
+        Varlines_ToBeRemoved.append(line)
         var_Address+=1
-        Assembly_Code.pop(0)
-        
-    
-    elif(codeline[0]=="var"):
-        Errors.append("Error: " +"Line n.o: "+str(countLine_var)+ " Invalid variable declaration")
-        Assembly_Code.pop(0)
+
+    elif(codeline[0]=="var" and len(codeline)==2 and (codeline[1] in Variables)):
+        Errors.append("Error: "+"Line n.o : "+(countLine_var)+" Duplicate Variable Declaration"+" ("+line+")")
+        Varlines_ToBeRemoved.append(line)
+
+    elif(codeline[0]=="var" and len(codeline)!=2):
+        Errors.append("Error: " +"Line n.o: "+str(countLine_var)+ " Invalid variable declaration"+" ("+line+")")
+        Varlines_ToBeRemoved.append(line)
 
     else:
         break
 
+for varLine in Varlines_ToBeRemoved:
+    Assembly_Code.remove(varLine)
+
 labels={}
-#print(Variables)
 line_address=-1
 
 countLine_label=len(Variables)
@@ -120,14 +119,14 @@ for line in Assembly_Code:
 
     elif(codeline[0][-1] == ":" and line.count(":")==1):
         if(codeline[0][:len(codeline[0])-1:] in Variables):
-            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Misuse of Variable as Label")
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Misuse of Variable as Label"+" ("+line+")")
 
         elif(codeline[0][-1] == ":" and len(codeline)==1):
-            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration")
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration"+" ("+line+")")
             Assembly_Code[line_address]=''
 
         elif(codeline[0][:len(codeline[0])-1:] in labels):
-            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Duplicate Label Declaration")
+            Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Duplicate Label Declaration"+" ("+line+")")
             Assembly_Code[line_address]=''
 
         elif(codeline[0][:len(codeline[0])-1:] not in labels):
@@ -137,7 +136,7 @@ for line in Assembly_Code:
             Assembly_Code[line_address] = newline
             
     elif(codeline[0][-1] == ":" and line.count(":")>1):
-        Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration")
+        Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration"+" ("+line+")")
         Assembly_Code[line_address]=''
             
     
@@ -146,85 +145,83 @@ for line in Assembly_Code:
 #print(labels)
 def typeA_Error(codeLine,line_Number):
     if len(codeline)!=4:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type A Error"+" ("+line+")")
         return True
     elif (getRegister(codeLine[1])=='Error' or getRegister(codeLine[2])=='Error' or getRegister(codeLine[3])=='Error'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register - Type A Error"+" ("+line+")")
         return True
     elif(getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111' or getRegister(codeLine[3])=='111'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Type A Error"+" ("+line+")")
         return True
 
 
 def typeB_Error(codeLine,line_Number):
     if len(codeline)!=3:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type B Error"+" ("+line+")")
         return True
     elif (getRegister(codeLine[1])=='Error'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register - Type B Error"+" ("+line+")")
         return True
     elif((codeLine[2][0])!='$'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type B Error"+" ("+line+")")
         return True
     elif(not codeLine[2][1::].isdecimal()):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Immediate value is not an integer")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Immediate value is not an integer - Type B Error"+" ("+line+")")
         return True
     elif(codeLine[2][1::].isdecimal() and int(codeLine[2][1::])<0 or int(codeLine[2][1::])>255):
-        Errors.append("Error: Line n.o: "+(line_Number)+" immediate value '"+str(codeline[2][1::])+"' is out of range")
+        Errors.append("Error: Line n.o: "+(line_Number)+" immediate value '"+str(codeline[2][1::])+"' is out of range - Type B Error"+" ("+line+")")
         return True
 
 def typeC_Error(codeLine,line_Number):
     if len(codeline)!=3:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type C Error"+" ("+line+")")
         return True
     elif(getRegister(codeline[1])=='Error' or getRegister(codeline[2])=='Error'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register - Type C Error"+" ("+line+")")
         return True
     elif (codeLine[0] in ['div','not','cmp'] and (getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111')):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Type C Error"+" ("+line+")")
         return True
     elif (getRegister(codeLine[1])=='111'):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Type C Error"+" ("+line+")")
         return True
 
 def typeD_Error(codeLine,line_Number):
     if len(codeline)!=3:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type D Error"+" ("+line+")")
         return True
     elif(codeLine[2] in labels):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Labels as Variable")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Labels as Variable - Type D Error"+" ("+line+")")
         return True
     elif (codeLine[2] not in Variables):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Variable")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Variable - Type D Error"+" ("+line+")")
         return True
 
 def typeE_Error(codeLine,line_Number):
     if(len(codeline))!=2:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Type E Error"+" ("+line+")")
         return True
     elif(codeLine[1] in Variables):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Variable as Label")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Misuse of Variable as Label - Type E Error"+" ("+line+")")
         return True
     elif (codeLine[1] not in labels):
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Label")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Undefined Label - Type E Error"+" ("+line+")")
         return True
 
 def typeF_Error(codeLine,line_Number):
     if len(codeline)!=1:
-        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax of hlt instruction")
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax of hlt instruction - Type F Error"+" ("+line+")")
         return True
     
         
 hlt_Present=False
 hlt_Count=0
 
-#print(len(Assembly_Code))
 for Line_No in range(0,len(Assembly_Code)):
     codeline=Assembly_Code[Line_No].split()
-    #print(codeline)
     if(codeline!=[]):
         if(codeline[0]=='hlt' and Line_No!=len(Assembly_Code)-1):
-            Errors.append("Error: "+"Line N.o: "+ str(Line_No+1+len(Variables))+ " hlt not being used as the last instruction")
+            Errors.append("Error: "+"Line n.o: "+ str(Line_No+1+len(Variables))+ " hlt not being used as the last instruction"+" ("+line+")")
             hlt_Count=hlt_Count+1
 
         elif(codeline[0]=='hlt' and Line_No==len(Assembly_Code)-1):
@@ -245,15 +242,16 @@ for line in Assembly_Code:
     lineCount+=1
     #print(codeline)
     Line_Number=str(lineCount+len(Variables))
+
+
     
     if (codeline==[]):
         continue
     
     elif codeline[0]=='var':
-        Errors.append("Error: " +"Line n.o: "+str(lineCount+len(Variables))+ " Invalid Variable declaration ")
+        Errors.append("Error: " +"Line n.o: "+str(lineCount+len(Variables))+ " Invalid Variable declaration "+" ("+line+")")
     
     
-
     elif(codeline[0]=='mov'):
         if(codeline[2][0]=='$'):
             if(typeB_Error(codeline,Line_Number)):
@@ -379,7 +377,7 @@ for line in Assembly_Code:
 
     
     else:
-        Errors.append("Error: "+"Line N.o: "+ Line_Number + " Invalid Instruction")
+        Errors.append("Error: "+"Line n.o: "+ Line_Number + " Invalid Instruction")
         continue
 
 
