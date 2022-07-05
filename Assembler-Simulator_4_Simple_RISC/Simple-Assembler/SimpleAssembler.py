@@ -64,6 +64,7 @@ for line in Assembly_Code:
 
 countLine_var=0
 Varlines_ToBeRemoved=[]
+Initial_LineCount=0
 for line in Assembly_Code:
     countLine_var+=1
     codeline=line.split()
@@ -73,14 +74,17 @@ for line in Assembly_Code:
         Variables[codeline[1]]=format(var_Address,'08b')
         Varlines_ToBeRemoved.append(line)
         var_Address+=1
+        Initial_LineCount+=1
 
     elif(codeline[0]=="var" and len(codeline)==2 and (codeline[1] in Variables)):
         Errors.append("Error: "+"Line n.o : "+(countLine_var)+" Duplicate Variable Declaration"+" ("+line+")")
         Varlines_ToBeRemoved.append(line)
+        Initial_LineCount+=1
 
     elif(codeline[0]=="var" and len(codeline)!=2):
         Errors.append("Error: " +"Line n.o: "+str(countLine_var)+ " Invalid variable declaration"+" ("+line+")")
         Varlines_ToBeRemoved.append(line)
+        Initial_LineCount+=1
 
     else:
         break
@@ -89,7 +93,7 @@ for varLine in Varlines_ToBeRemoved:
     Assembly_Code.remove(varLine)
 
 labels={}
-line_address=-1
+line_address= -1
 
 countLine_label=len(Variables)
 for line in Assembly_Code:
@@ -192,7 +196,7 @@ def typeF_Error(codeLine,line_Number):
     if len(codeline)!=1:
         Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax of hlt instruction - Type F Error"+" ("+line+")")
         return True
-    
+
         
 hlt_Present=False
 hlt_Count=0
@@ -201,7 +205,7 @@ for Line_No in range(0,len(Assembly_Code)):
     codeline=Assembly_Code[Line_No].split()
     if(codeline!=[]):
         if(codeline[0]=='hlt' and Line_No!=len(Assembly_Code)-1):
-            Errors.append("Error: "+"Line n.o: "+ str(Line_No+1+len(Variables))+ " hlt not being used as the last instruction"+" ("+line+")")
+            Errors.append("Error: "+"Line n.o: "+ str(Line_No+1+Initial_LineCount)+ " hlt not being used as the last instruction"+" ("+Assembly_Code[Line_No]+")")
             hlt_Count=hlt_Count+1
 
         elif(codeline[0]=='hlt' and Line_No==len(Assembly_Code)-1):
@@ -219,8 +223,7 @@ for line in Assembly_Code:
     
     codeline=line.split()
     lineCount+=1
-    Line_Number=str(lineCount+len(Variables))
-
+    Line_Number=str(lineCount+Initial_LineCount)
 
     if (codeline==[]):
         continue
