@@ -50,7 +50,7 @@ def getOpcode(line):
 
 for line in fileinput.input():
     Assembly_Code.append(line.rstrip())
-    
+
 Variables={}
 
 var_Address=len(Assembly_Code)
@@ -360,11 +360,16 @@ for line in Assembly_Code:
         continue
 
 
-if Errors!=[]:
-    for line in Errors:
-        # print(line)
-        sys.stdout.write(line+"\n")
+Total_Lines=len(Machine_Code)
+
+if Total_Lines>256:
+    sys.stdout.write("Error: Program is too large")
 else:
-    for line in Machine_Code:
-        # print(line)
-        sys.stdout.write(line+"\n")
+    if Errors!=[]:
+        for line in Errors:
+            # print(line)
+            sys.stdout.write(line+"\n")  
+    else:
+        for line in Machine_Code:
+            # print(line)
+            sys.stdout.write(line+"\n")
