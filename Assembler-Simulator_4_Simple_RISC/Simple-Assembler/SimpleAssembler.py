@@ -33,7 +33,11 @@ def getOpcode(line):
         'jlt':'01100',
         'jgt':'01101',
         'je':'01111',
-        'hlt':'01010'
+        'hlt':'01010',
+
+        'addf':'00000',
+        'subf':'00001',
+        'movf':'00010',
     }
     if line[0]=="mov" and line[2][1::].isdecimal():
         return "10010"
@@ -47,7 +51,6 @@ def getOpcode(line):
     else:
         return 'Error'
     
-
 for line in fileinput.input():
     Assembly_Code.append(line.rstrip())
 
@@ -125,7 +128,17 @@ for line in Assembly_Code:
     elif(codeline[0][-1] == ":" and line.count(":")>1):
         Errors.append("Error: " +"Line n.o: "+str(countLine_label)+ " Invalid Syntax of Label Declaration"+" ("+line+")")
         Assembly_Code[line_address]=''
-            
+
+def float_Error(codeLine,line_Number):
+    if len(codeline)!=4:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - Floating Point Error"+" ("+line+")")
+        return True
+    elif (getRegister(codeLine[1])=='Error' or getRegister(codeLine[2])=='Error' or getRegister(codeLine[3])=='Error'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Register - Floating Point Error"+" ("+line+")")
+        return True
+    elif(getRegister(codeLine[1])=='111' or getRegister(codeLine[2])=='111' or getRegister(codeLine[3])=='111'):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Illegal use of FLAGS register - Floating Point Error"+" ("+line+")")
+        return True
     
 def typeA_Error(codeLine,line_Number):
     if len(codeline)!=4:
@@ -197,6 +210,63 @@ def typeF_Error(codeLine,line_Number):
         Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax of hlt instruction - Type F Error"+" ("+line+")")
         return True
 
+def floating_point_Error(codeLine,line_Number):
+    if len(codeline)!=1:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid floating point declaration"+" ("+line+")")
+        return True
+
+def int_Error(codeLine,line_Number):
+    is_int=float(codeLine[2][1::])-int(codeLine[2][1])
+    if len(codeline)!=3:
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Invalid Syntax - MoveF_Immediate"+" ("+line+")")
+        return True
+
+    elif (is_int==0):
+        Errors.append("Error: "+"Line n.o : "+(line_Number)+" Integer declaration instead of Float"+" ("+line+")")
+        return True
+
+def convertodecimal(n):
+    while n > 1:
+        n=n/10
+    return n
+
+def IEEE_format(num):
+
+    whole,decimal=str(num).split(".")
+
+    whole=int(whole)
+    decimal=int(decimal)
+
+    binary=format(whole,'0b')+"."
+    
+    for i in range(10):
+        w1,dec=str(convertodecimal(decimal)*2).split(".")
+
+        dec=int(dec)
+        binary=binary+w1
+
+        if dec==0:
+            break
+    
+
+    w2,d2=str(binary).split(".")
+
+    E=len(str(w2))-1
+    
+    r1=int(w2)%(10**E)
+    r1=str(r1)+str(d2)+"00000"
+
+
+    Mantissa=''
+    for i in range(5):
+      Mantissa=Mantissa+str(r1[i])
+
+    if (E<=7):
+      Exponent=format(E,"03b")
+    else:
+      Exponent='111'
+
+    return(Exponent+Mantissa)
         
 hlt_Present=False
 hlt_Count=0
@@ -234,6 +304,10 @@ for line in Assembly_Code:
     
     elif(codeline[0]=='mov'):
         if(codeline[2][0]=='$'):
+            float_num=float(codeline[2][1::])
+            if (float_num-int(float_num)!=0):
+                floating_point_Error(codeline,Line_Number)
+                continue
             if(typeB_Error(codeline,Line_Number)):
                 continue
             else:
@@ -348,6 +422,25 @@ for line in Assembly_Code:
                 continue
         else:
             Machine_Code.append(getOpcode(codeline)+"0"*3+format(labels[codeline[1]],'08b'))
+    
+    elif codeline[0]=="movf":
+        if(int_Error(codeline,Line_Number)):
+            continue
+        Machine_Code.append(getOpcode(codeline) + getRegister(codeline[1]) + IEEE_format(codeline[2][1::]))
+    
+    elif codeline[0]=="subf":
+        if(float_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+
+    elif codeline[0]=="addf":
+        if(float_Error(codeline,Line_Number)):
+                continue
+        else:
+            Machine_Code.append(getOpcode(codeline)+"0"*2+getRegister(codeline[1])+getRegister(codeline[2])+getRegister(codeline[3]))
+
+
 
     elif(codeline[0]=='hlt'):
         if(typeF_Error(codeline,Line_Number)):
