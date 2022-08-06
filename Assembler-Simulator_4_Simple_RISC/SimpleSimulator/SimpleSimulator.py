@@ -30,13 +30,20 @@ class Memory:
 
 class ProgramCounters:
     Counter=0
-
+    PrevCounter=0
+    Jump=False
     def update(self,new_PC):
         self.Counter = new_PC
 
     def dump(self):
-        binary=bin(self.Counter)[2::]
-        print('0'*(8- len(binary)) + binary,end=' ')
+        if(not self.Jump):
+            binary=bin(self.Counter)[2::]
+            print('0'*(8- len(binary)) + binary,end=' ')
+        elif(self.Jump):
+            binary=bin(self.PrevCounter)[2::]
+            print('0'*(8- len(binary)) + binary,end=' ')
+            self.Jump=False
+    
 
 
 
@@ -100,20 +107,20 @@ class ExecuteEngine:
 
     def execute(self,Instruction):
         opcode=Instruction[0:5]
-
+        # print(self.Memory_ValueDict)
         if(opcode=='10000'):
             #ADD
             reg1=Instruction[7:10:]
             reg2=Instruction[10:13:]
-            reg3=Instruction[13:16:]
+            reg3=Instruction[13::]
 
-            value=RegisterFile.retrieveRegister(reg2)+RegisterFile.retrieveRegister(reg3)
+            value=RegisterFile.retrieveRegister(reg1)+RegisterFile.retrieveRegister(reg2)
             if(Overflow(value)):
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
 
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg3,value)
 
             return False, ProgramCounter.Counter+1
         
@@ -121,15 +128,15 @@ class ExecuteEngine:
             #SUB
             reg1=Instruction[7:10:]
             reg2=Instruction[10:13:]
-            reg3=Instruction[13:16:]
+            reg3=Instruction[13::]
 
-            value=RegisterFile.retrieveRegister(reg2)-RegisterFile.retrieveRegister(reg3)
+            value=RegisterFile.retrieveRegister(reg1)-RegisterFile.retrieveRegister(reg2)
             if(value<0):
                 RegisterFile.setLessThan()
-                RegisterFile.updateRegister(reg1,0)
+                RegisterFile.updateRegister(reg3,0)
             else:
                 RegisterFile.resetFlags()
-                RegisterFile.updateRegister(reg1,value)
+                RegisterFile.updateRegister(reg3,value)
 
             return False, ProgramCounter.Counter+1
         
@@ -158,12 +165,12 @@ class ExecuteEngine:
             reg1=Instruction[7:10:]
             reg2=Instruction[10:13:]
             reg3=Instruction[13::]
-            value=RegisterFile.retrieveRegister(reg2)*RegisterFile.retrieveRegister(reg3)
+            value=RegisterFile.retrieveRegister(reg1)*RegisterFile.retrieveRegister(reg2)
             if(Overflow(value)):
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg3,value)
             return False, ProgramCounter.Counter+1
         
         elif(opcode=='10111'):
@@ -206,7 +213,7 @@ class ExecuteEngine:
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg3,value)
             return False, ProgramCounter.Counter+1
         
         elif(opcode=='11011'):
@@ -219,7 +226,7 @@ class ExecuteEngine:
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg3,value)
             return False, ProgramCounter.Counter+1
 
         elif(opcode=='11100'):
@@ -232,19 +239,19 @@ class ExecuteEngine:
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg3,value)
             return False, ProgramCounter.Counter+1
         
         elif(opcode=='11101'):
             #Invert
             reg1=Instruction[10:13:]
             reg2=Instruction[13::]
-            value= ~RegisterFile.retrieveRegister(reg2)
+            value= ~RegisterFile.retrieveRegister(reg1)
             if(Overflow(value)):
                 RegisterFile.setOverflow()
             else:
                 RegisterFile.resetFlags()
-            RegisterFile.updateRegister(reg1,value)
+            RegisterFile.updateRegister(reg2,value)
             return False, ProgramCounter.Counter+1
         
         elif(opcode=='11110'):
@@ -263,7 +270,10 @@ class ExecuteEngine:
         elif(opcode=='11111'):
             #Jump
             Imm=Instruction[8::]
+            # print("hi")
             value=int(Imm,2)
+            ProgramCounter.PrevCounter=ProgramCounter.Counter+1
+            ProgramCounter.Jump=True
             ProgramCounter.Counter=value
             RegisterFile.resetFlags()
             return False, ProgramCounter.Counter
@@ -281,9 +291,11 @@ class ExecuteEngine:
                 return False, ProgramCounter.Counter+1
         
         elif(opcode=='01101'):
+            # print("gmm")
             #JumpIfGreaterThan
             Imm=Instruction[8::]
             value=int(Imm,2)
+            # print(RegisterFile.Registers['011'],RegisterFile.Registers['001'])
             if(RegisterFile.Registers['111']=='0000000000000010'):
                 RegisterFile.resetFlags()
                 ProgramCounter.Counter=value
@@ -304,19 +316,28 @@ class ExecuteEngine:
                 RegisterFile.resetFlags()
                 return False, ProgramCounter.Counter+1
         
-        elif(opcode=='10101'):
+        elif(opcode=='10100'):
             #Load
             reg1=Instruction[5:8:]
             reg2=Instruction[8::]
-            self.Memory_ValueDict[reg2]=RegisterFile.retrieveRegister(reg1)
-            RegisterFile.resetFlags()
-            return False, ProgramCounter.Counter+1
+            # self.Memory_ValueDict[reg2]=RegisterFile.retrieveRegister(reg1)
+            if(reg2 in self.Memory_ValueDict):
+                RegisterFile.updateRegister(reg1,self.Memory_ValueDict[reg2])
+                RegisterFile.resetFlags()
+                return False, ProgramCounter.Counter+1
+            elif(reg2 not in self.Memory_ValueDict):
+                self.Memory_ValueDict[reg2]=0
+                RegisterFile.updateRegister(reg1,0)
+                RegisterFile.resetFlags()
+                return False, ProgramCounter.Counter+1
         
-        elif(opcode=='10100'):
+        elif(opcode=='10101'):
             #Store
             reg1=Instruction[5:8:]
             reg2=Instruction[8::]
-            RegisterFile.updateRegister(reg1,self.Memory_ValueDict[reg2])
+            # RegisterFile.updateRegister(reg1,self.Memory_ValueDict[reg2])
+            # print(RegisterFile.retrieveRegister('011'),reg2)
+            self.Memory_ValueDict[reg2]=RegisterFile.retrieveRegister(reg1)
             RegisterFile.resetFlags()
             return False, ProgramCounter.Counter+1
         
@@ -335,7 +356,8 @@ MEM.initialize()
 ProgramCounter.Counter=0
 halted= False
 
-while(not halted):
+# while(not halted):
+while (not halted):
     Instruction = MEM.getData(ProgramCounter.Counter)
     halted, new_PC = EE.execute(Instruction)
     ProgramCounter.dump()
